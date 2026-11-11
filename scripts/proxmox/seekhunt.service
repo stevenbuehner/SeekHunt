@@ -1,0 +1,25 @@
+[Unit]
+Description=SeekHunt game server (workerd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=seekhunt
+Group=seekhunt
+WorkingDirectory=/opt/seekhunt/current
+EnvironmentFile=/etc/seekhunt/seekhunt.env
+ExecStart=/opt/seekhunt/current/node_modules/.bin/workerd serve /opt/seekhunt/current/build/proxmox/config.capnp --socket-addr http=${LISTEN_ADDRESS}:${PORT}
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/seekhunt
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
