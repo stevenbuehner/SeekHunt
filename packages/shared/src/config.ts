@@ -29,6 +29,8 @@ export interface GameConfig {
   lastSurvivorWins: boolean;
   /** Players declare which floor they are on, and the radar shows it. For games inside buildings. */
   buildingMode: boolean;
+  /** Temporary map notes shared only with the player's team. */
+  teamMarkings: boolean;
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -46,6 +48,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   caughtBecomeSeekers: false,
   lastSurvivorWins: true,
   buildingMode: false,
+  teamMarkings: false,
 };
 
 const clamp = (v: unknown, min: number, max: number, fallback: number) =>
@@ -92,5 +95,6 @@ export function sanitizeConfig(input: Partial<GameConfig> | undefined, base: Gam
     lastSurvivorWins: typeof i.lastSurvivorWins === "boolean" ? i.lastSurvivorWins : base.lastSurvivorWins,
     // `?? false`: rooms saved before this option existed have no value for it.
     buildingMode: typeof i.buildingMode === "boolean" ? i.buildingMode : (base.buildingMode ?? false),
+    teamMarkings: typeof i.teamMarkings === "boolean" ? i.teamMarkings : (base.teamMarkings ?? false),
   };
 }

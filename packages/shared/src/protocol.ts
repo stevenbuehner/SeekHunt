@@ -56,6 +56,19 @@ export interface Ping {
   alt?: number;
 }
 
+export type TeamMarkKind = "suspect" | "clear";
+
+export interface TeamMark {
+  id: string;
+  playerId: string;
+  /** The team at creation time; never reassigned when a player changes sides. */
+  role: Role;
+  pos: LatLng;
+  kind: TeamMarkKind;
+  /** Renewed on edits and shifted on resume so pauses freeze the countdown. */
+  expiresAt: number;
+}
+
 export interface GameView {
   code: string;
   phase: Phase;
@@ -71,6 +84,7 @@ export interface GameView {
   me: { id: string; role: Role; status: PlayerStatus; catchCode: string | null; floor: number | null };
   players: PlayerView[];
   pings: Ping[];
+  teamMarks: TeamMark[];
   nextPingAt: number | null;
   /** Set while the host has paused the game: clocks, zone and radar are frozen at this instant. */
   pausedAt: number | null;
@@ -85,6 +99,9 @@ export type ClientMsg =
   | { t: "start" }
   | { t: "loc"; lat: number; lng: number; acc: number; alt?: number | null; altAcc?: number | null }
   | { t: "floor"; floor: number | null }
+  | { t: "markAdd"; lat: number; lng: number; kind: TeamMarkKind }
+  | { t: "markUpdate"; id: string; kind?: TeamMarkKind; lat?: number; lng?: number }
+  | { t: "markRemove"; id: string }
   | { t: "catch"; code: string }
   | { t: "surrender" }
   | { t: "sos" }
