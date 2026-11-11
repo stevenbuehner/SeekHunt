@@ -82,6 +82,24 @@ untied shoe, or anything that matters more than the game.
 - If the game is ever wrapped as a native app (Capacitor), the barometer could
   detect floors automatically.
 
+## Team markings (`teamMarkings`)
+
+An optional lobby rule, disabled by default. Enable the flag button above SOS,
+then tap the map to choose "Opponent
+sighted" (green eye) or "Nobody found" (orange X). Each active player can place up to three notes.
+Every note shows its remaining time and disappears after two minutes of game
+time; host pauses freeze the countdown. Each saved edit or move resets the
+countdown to two minutes. Tapping a note shows its author; only its owner can change or remove
+it. Hold for 450 ms and drag with mouse or touch to move it, or use "Move mark"
+and tap the destination. The flag button starts off and uses an orange outline
+while active. Switch it off to navigate the map without opening the note picker;
+Escape also switches it off. In simulation mode, taps move the player while the
+flag button is off. Pausing or leaving active play switches it off as well.
+
+The server sends notes only to their own team, including when a player is
+spectating. An infected player's old notes are removed when they change
+teams. Notes survive reconnects, and are cleared when the round ends.
+
 ## Languages
 
 The interface is in English, Spanish and German, picked automatically from the phone's

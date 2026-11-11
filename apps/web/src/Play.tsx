@@ -1,5 +1,5 @@
-import { bearing, buildSchedule, type ClientMsg, distance, gameDeadline, type GameView, MAX_FLOOR, MIN_FLOOR, type Ping, TRUSTED_ALTITUDE_ACCURACY, zoneAt } from "@seekhunt/shared";
-import { Building2, ChevronDown, Focus, LifeBuoy, LocateFixed, Minus, Navigation2, Pause, Play as PlayIcon, Plus, Radar, ScanLine, Share2, Trophy, Users } from "lucide-react";
+import { bearing, buildSchedule, type ClientMsg, distance, gameDeadline, type GameView, type LatLng, MAX_FLOOR, MAX_TEAM_MARKS, MIN_FLOOR, type Ping, type TeamMark, type TeamMarkKind, TRUSTED_ALTITUDE_ACCURACY, zoneAt } from "@seekhunt/shared";
+import { Building2, ChevronDown, Eye, Flag, Focus, LifeBuoy, LocateFixed, Minus, Move, Navigation2, Pause, Play as PlayIcon, Plus, Radar, ScanLine, Share2, Trash2, Trophy, Users, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CatchQr, QrFullscreen, Scanner } from "./Catch";
 import { GameMap, type MapHandle, type MapPing, type MapPlayer } from "./GameMap";
@@ -7,6 +7,7 @@ import { type Key, useT } from "./i18n";
 import { type MyFix, SIM_MODE, WALKING_LIMIT } from "./location";
 import type { Gps } from "./Room";
 import { shareResult } from "./share";
+import type { MapTeamMark, TeamMarkPopup } from "./TeamMarkers";
 import { type ConfirmRequest, fmt, fmtDuration, GameProgress, initials, Notice, useNow } from "./ui";
 
 interface Props {
@@ -37,7 +38,8 @@ function altitudeHint(t: T, ping: Ping, me: MyFix | null) {
 
 export function Play({ view, send, gps, clockOffset, ask }: Props) {
   const t = useT();
-  const live = useNow(clockOffset);
+  // A new server view can arrive between clock ticks (e.g. immediately after placing a note).
+  const live = Math.max(useNow(clockOffset), view.serverNow);
   // While paused every clock, the zone and the radar countdown stand still at the pause instant.
   const paused = view.pausedAt !== null && (view.phase === "hiding" || view.phase === "seeking");
   const now = paused ? view.pausedAt! : live;
@@ -48,6 +50,61 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
   const ended = phase === "ended";
   const spectating = ended || me.status !== "active";
   const building = !!config.buildingMode;
+  const markings = !!config.teamMarkings && !ended;
+  const canMark = markings && !spectating && !paused;
+  const [markSelection, setMarkSelection] = useState<{ id: string } | { pos: LatLng } | null>(null);
+  const [movingMark, setMovingMark] = useState<string | null>(null);
+  const [placingMarks, setPlacingMarks] = useState(false);
+  const markMode = placingMarks && canMark;
+  const teamMarks: MapTeamMark[] = markings ? (view.teamMarks ?? [])
+    .filter((m) => m.role === me.role && m.expiresAt > now)
+    .map((m) => ({ ...m, own: m.playerId === me.id, editable: canMark && m.playerId === me.id, label: t("mark.label", { kind: t(m.kind === "suspect" ? "mark.suspect" : "mark.clear"), name: view.players.find((p) => p.id === m.playerId)?.name ?? "" }) })) : [];
+  const ownMarkCount = teamMarks.filter((m) => m.playerId === me.id).length;
+  const selectedMark = markSelection && "id" in markSelection ? teamMarks.find((m) => m.id === markSelection.id) : undefined;
+  const newMarkPos = markSelection && "pos" in markSelection ? markSelection.pos : undefined;
+  useEffect(() => {
+    setMarkSelection(null);
+    setMovingMark(null);
+    setPlacingMarks(false);
+  }, [me.role, me.status, paused, ended, config.teamMarkings]);
+  useEffect(() => {
+    if (markSelection && "id" in markSelection && !selectedMark) setMarkSelection(null);
+    if (movingMark && !teamMarks.some((m) => m.id === movingMark && m.editable)) setMovingMark(null);
+  }, [markSelection, selectedMark, movingMark, teamMarks]);
+  useEffect(() => {
+    if (!markSelection && !movingMark && !placingMarks) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMarkSelection(null); setMovingMark(null); setPlacingMarks(false); }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [markSelection, movingMark, placingMarks]);
+  const moveMark = (id: string, pos: LatLng) => {
+    if (canMark && teamMarks.some((m) => m.id === id && m.playerId === me.id)) send({ t: "markUpdate", id, ...pos });
+    setMovingMark(null);
+    setMarkSelection(null);
+  };
+  const markPopup: TeamMarkPopup | undefined = selectedMark || (newMarkPos && canMark) ? {
+    key: selectedMark?.id ?? "new",
+    pos: selectedMark?.pos ?? newMarkPos!,
+    content: <MarkMenu
+      mark={selectedMark}
+      owner={view.players.find((p) => p.id === selectedMark?.playerId)?.name ?? ""}
+      own={selectedMark?.playerId === me.id}
+      canEdit={canMark}
+      limit={ownMarkCount >= MAX_TEAM_MARKS}
+      now={now}
+      onClose={() => setMarkSelection(null)}
+      onKind={(kind) => {
+        if (!canMark) return;
+        if (selectedMark) send({ t: "markUpdate", id: selectedMark.id, kind });
+        else if (newMarkPos) send({ t: "markAdd", ...newMarkPos, kind });
+        setMarkSelection(null);
+      }}
+      onRemove={() => { if (selectedMark && canMark) send({ t: "markRemove", id: selectedMark.id }); setMarkSelection(null); }}
+      onMove={() => { if (selectedMark && canMark) { setMovingMark(selectedMark.id); setPlacingMarks(true); } setMarkSelection(null); }}
+    />,
+  } : undefined;
 
   const schedule = useMemo(
     () => (view.seekStartAt !== null ? buildSchedule(config, view.seed, view.seekStartAt) : null),
@@ -124,7 +181,17 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
         attribution="top-right"
         shrinking={!!zone?.shrinking && !paused}
         paused={paused}
-        onTap={SIM_MODE && !spectating ? gps.setSimFix : undefined}
+        teamMarks={teamMarks}
+        markNow={now}
+        markPopup={markPopup}
+        onMarkTap={(id) => { setMarkSelection({ id }); setMovingMark(null); }}
+        onMarkMove={moveMark}
+        onTap={(pos) => {
+          if (movingMark) { moveMark(movingMark, pos); return; }
+          if (markMode) { setMarkSelection({ pos }); return; }
+          setMarkSelection(null);
+          if (SIM_MODE && !spectating) gps.setSimFix(pos);
+        }}
       />
       <div className={`vignette${outside && !paused ? " on" : ""}`} />
       {!ended && <Moments view={view} now={now} paused={paused} zone={zone} alive={alive} />}
@@ -177,6 +244,18 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
         <button className="icon-btn" aria-label={t("fab.zone")} onClick={() => mapRef.current?.fit(current)}>
           <Focus size={20} />
         </button>
+        {markings && !spectating && (
+          <button
+            className="icon-btn mark-toggle"
+            aria-label={t("fab.mark")}
+            title={t("fab.mark")}
+            aria-pressed={markMode}
+            disabled={!canMark}
+            onClick={() => { setPlacingMarks(!markMode); setMarkSelection(null); setMovingMark(null); }}
+          >
+            <Flag size={20} />
+          </button>
+        )}
         {!ended && !mySos && (
           <button
             className="icon-btn sos"
@@ -187,7 +266,7 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
           </button>
         )}
       </div>
-      {SIM_MODE && !spectating && (
+      {SIM_MODE && !spectating && !markMode && (
         <div className="sim-chip">
           <span className="pill">{t("sim.chip")}</span>
         </div>
@@ -195,6 +274,9 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
 
       <footer className={`sheet${ended ? " ended" : ""}`}>
         <div className="grabber" />
+        {movingMark && canMark && <Notice action={<button className="notice-action" onClick={() => setMovingMark(null)}>{t("common.cancel")}</button>}>
+          {t("mark.moveHint")}
+        </Notice>}
         {paused && (
           <Notice
             icon={<Pause size={18} />}
@@ -290,6 +372,41 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
       </footer>
     </main>
   );
+}
+
+/** Anchored to the tapped position: teammates can inspect the author, owners can edit. */
+function MarkMenu({ mark, owner, own, canEdit, limit, now, onClose, onKind, onRemove, onMove }: {
+  mark?: TeamMark; owner: string; own: boolean; canEdit: boolean; limit: boolean; now: number;
+  onClose: () => void; onKind: (kind: TeamMarkKind) => void; onRemove: () => void; onMove: () => void;
+}) {
+  const t = useT();
+  const editable = canEdit && (!mark || own);
+  return <div className="mark-menu" role="dialog" aria-label={t("mark.title")} onKeyDown={(e) => {
+    if (e.key !== "Tab") return;
+    const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
+    const first = buttons[0], last = buttons[buttons.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+  }}>
+    <div className="row mark-menu-head">
+      <b>{mark ? t(mark.kind === "suspect" ? "mark.suspect" : "mark.clear") : t("mark.title")}</b>
+      <button className="icon-btn plain" aria-label={t("common.close")} onClick={onClose}><X size={18} /></button>
+    </div>
+    {mark ? <>
+      <p className="mark-author">{t("mark.by", { name: owner })}</p>
+      <p className="small muted">{t("mark.remaining", { time: fmt(mark.expiresAt - now) })}</p>
+    </> : <p className="small muted">{t("mark.newHint")}</p>}
+    {!mark && limit ? <p className="small">{t("mark.limitHint")}</p> : editable && <div className="mark-options">
+      <button className="btn btn-soft mark-sighted-option" aria-pressed={mark?.kind === "suspect"} onClick={() => onKind("suspect")}><Eye size={20} />{t("mark.suspect")}</button>
+      <button className="btn btn-soft" aria-pressed={mark?.kind === "clear"} onClick={() => onKind("clear")}><X size={20} className="mark-clear-icon" />{t("mark.clear")}</button>
+    </div>}
+    {mark && editable && <>
+      <p className="small muted">{t("mark.ownHint")}</p>
+      <button className="btn btn-soft btn-sm" onClick={onMove}><Move size={16} />{t("mark.move")}</button>
+      <button className="btn btn-text danger btn-sm" onClick={onRemove}><Trash2 size={16} />{t("mark.remove")}</button>
+    </>}
+    {mark && !editable && !own && <p className="small muted">{t("mark.teamHint")}</p>}
+  </div>;
 }
 
 /** Building mode: everyone says which floor they are on; the radar repeats it. */

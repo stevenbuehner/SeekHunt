@@ -59,6 +59,9 @@ the link. There is nothing to install and no account to create.
   freezes every timer.
 - **Game modes.** Last survivor, infection (caught players become seekers) and
   building mode, where players declare their floor.
+- **Optional team markings.** Tap the map to flag a sighted opponent or a
+  checked location. Each player has three marks, visible only to their team,
+  with a two-minute countdown that freezes during pauses.
 - **Guidance in play.** A countdown before the release, notices when the zone
   closes, and a direction and distance back to the zone for anyone outside it.
 - **Recap.** Duration, catches, survivors, a timeline of the game and a
