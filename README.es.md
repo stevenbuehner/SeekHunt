@@ -101,6 +101,9 @@ npm run dev        # worker en :8787 y web en :5173
 - **Móviles en la misma red:** `npm run dev:phone` y abre
   `https://<tu-ip>:5173`, aceptando el aviso del certificado.
 - **Despliegue:** `npx wrangler login` una vez y después `npm run deploy`.
+- **Alojamiento en Proxmox:** consulta [el instalador de Proxmox](docs/PROXMOX.md)
+  para un LXC Debian con `workerd`, HTTP detrás de tu proxy HTTPS y
+  actualizaciones desde la rama `proxmox/main` mediante `update`.
 
 ## Contribuir
 

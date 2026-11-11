@@ -142,6 +142,9 @@ npm run dev        # Worker on :8787, web app on :5173
   accepting the certificate warning.
 - **Deployment.** With a Cloudflare account, run `npx wrangler login` once and
   then `npm run deploy`.
+- **Proxmox self-hosting.** See [the Proxmox installer](docs/PROXMOX.md) for a
+  Debian LXC running production `workerd`, HTTP behind your HTTPS reverse proxy,
+  and updates from the `proxmox/main` branch with the `update` command.
 
 ### Checks
 
