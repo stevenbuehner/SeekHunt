@@ -73,6 +73,31 @@ La interfaz está en español, inglés y alemán, y se elige automáticamente se
 | **Equilibrio de equipos** | En grupos de 6 o más, la sala sugiere 1 cazador por cada 4–6 escondidos. |
 | **Saltos imposibles** | Se descartan las posiciones que implican más de 60 m/s. Es un antitrampas ligero contra GPS falso. |
 
+## Marcas del mapa (`mapMarkLimit`)
+
+Regla opcional, desactivada por defecto. Elige entre 0 y 3 marcas por jugador;
+0 las desactiva. Activa el botón de bandera encima de
+SOS y toca el mapa para señalar un rival
+avistado (ojo verde) o un lugar revisado (X naranja). Cada jugador activo puede tener hasta el límite elegido.
+Desaparecen tras dos minutos de juego; las pausas detienen la cuenta atrás y
+editar o mover una marca la reinicia a dos minutos. Al tocarla se muestra su autor, el
+único que puede modificarla o borrarla. Para moverla, mantén pulsado durante
+450 ms y arrastra con ratón o dedo, o elige "Mover marca" y toca el destino.
+El botón empieza desactivado y muestra un borde naranja cuando está activo.
+El botón controla tanto la visibilidad como la edición: al desactivarlo se ocultan
+las marcas propias y del equipo solo para ese jugador, sin borrarlas. Un contador
+muestra todas las marcas disponibles y desaparece cuando no queda ninguna. Si
+un compañero añade una marca mientras están ocultas, el botón parpadea suavemente
+hasta mostrarlas o hasta que esas marcas nuevas se eliminen o caduquen. Editar una
+marca existente no activa el aviso. Los espectadores pueden mostrar las marcas de
+su equipo, pero no editarlas. Escape también desactiva el botón. En simulación,
+los toques mueven al jugador mientras esté desactivado.
+Las pausas o dejar de jugar activamente también lo desactivan.
+
+El servidor solo envía marcas al equipo correspondiente, también en modo
+espectador. Al cambiar de equipo por infección se borran las marcas propias
+anteriores. Se conservan al reconectar y se borran al terminar la ronda.
+
 ## Seguridad y privacidad (requisitos, no extras)
 
 - Las zonas se eligen sin carreteras grandes, vías de tren, agua ni propiedades privadas. La pantalla de inicio lo recuerda.
