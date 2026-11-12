@@ -1,17 +1,17 @@
-import type { LatLng, TeamMark } from "@seekhunt/shared";
+import type { LatLng, MapMark } from "@seekhunt/shared";
 import { Eye, X } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { fmt } from "./ui";
 
-export interface MapTeamMark extends TeamMark {
+export interface MapMarkView extends MapMark {
   label: string;
   own: boolean;
   editable: boolean;
 }
 
-export interface TeamMarkPopup {
+export interface MapMarkPopup {
   key: string;
   pos: LatLng;
   content: ReactNode;
@@ -19,9 +19,9 @@ export interface TeamMarkPopup {
 
 interface Props {
   map: maplibregl.Map | null;
-  marks: MapTeamMark[];
+  marks: MapMarkView[];
   now: number;
-  popup?: TeamMarkPopup;
+  popup?: MapMarkPopup;
   onTap?: (id: string) => void;
   onMove?: (id: string, pos: LatLng) => void;
 }
@@ -30,8 +30,22 @@ const HOLD_MS = 450;
 const MOVE_TOLERANCE = 8;
 
 /** Pointer events cover mouse, touch and pen without two competing drag implementations. */
-function holdToMove(map: maplibregl.Map, marker: maplibregl.Marker, button: HTMLButtonElement, editable: () => boolean, onMove: (pos: LatLng) => void, onTap: () => void) {
-  let gesture: { pointer: number; x: number; y: number; original: maplibregl.LngLat; held: boolean; moved: boolean } | null = null;
+function holdToMove(
+  map: maplibregl.Map,
+  marker: maplibregl.Marker,
+  button: HTMLButtonElement,
+  editable: () => boolean,
+  onMove: (pos: LatLng) => void,
+  onTap: () => void,
+) {
+  let gesture: {
+    pointer: number;
+    x: number;
+    y: number;
+    original: maplibregl.LngLat;
+    held: boolean;
+    moved: boolean;
+  } | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let suppressClick = false;
   const stop = (e: Event) => e.stopPropagation();
@@ -99,7 +113,10 @@ function holdToMove(map: maplibregl.Map, marker: maplibregl.Marker, button: HTML
     if (!suppressClick || e.detail === 0) onTap();
     suppressClick = false;
   };
-  const context = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
+  const context = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
   button.addEventListener("pointerdown", down);
   button.addEventListener("pointermove", move);
   button.addEventListener("pointerup", up);
@@ -134,7 +151,7 @@ function holdToMove(map: maplibregl.Map, marker: maplibregl.Marker, button: HTML
 type Entry = { marker: maplibregl.Marker; button: HTMLButtonElement; drag: ReturnType<typeof holdToMove> };
 
 /** Like player avatars, notes are DOM markers diffed by id; React supplies their icons and clocks. */
-export function TeamMarkers({ map, marks, now, popup, onTap, onMove }: Props) {
+export function MapMarkers({ map, marks, now, popup, onTap, onMove }: Props) {
   const entries = useRef(new Map<string, Entry>());
   const [hosts, setHosts] = useState<{ id: string; button: HTMLButtonElement }[]>([]);
   const latest = useRef({ marks, onTap, onMove });
@@ -152,18 +169,24 @@ export function TeamMarkers({ map, marks, now, popup, onTap, onMove }: Props) {
       if (!entry) {
         const button = document.createElement("button");
         button.type = "button";
-        const marker = new maplibregl.Marker({ element: button, anchor: "bottom-left" }).setLngLat([mark.pos.lng, mark.pos.lat]).addTo(map);
-        const drag = holdToMove(map, marker, button,
+        const marker = new maplibregl.Marker({ element: button, anchor: "bottom-left" })
+          .setLngLat([mark.pos.lng, mark.pos.lat])
+          .addTo(map);
+        const drag = holdToMove(
+          map,
+          marker,
+          button,
           () => !!latest.current.marks.find((m) => m.id === mark.id)?.editable,
           (pos) => latest.current.onMove?.(mark.id, pos),
-          () => latest.current.onTap?.(mark.id));
+          () => latest.current.onTap?.(mark.id),
+        );
         entry = { marker, button, drag };
         entries.current.set(mark.id, entry);
         changed = true;
       }
       if (!mark.editable) entry.drag.cancel();
       if (!entry.drag.active()) entry.marker.setLngLat([mark.pos.lng, mark.pos.lat]);
-      entry.button.classList.add("team-mark");
+      entry.button.classList.add("map-mark");
       entry.button.classList.toggle("suspect", mark.kind === "suspect");
       entry.button.classList.toggle("clear", mark.kind === "clear");
       entry.button.classList.toggle("own", mark.own);
@@ -191,8 +214,16 @@ export function TeamMarkers({ map, marks, now, popup, onTap, onMove }: Props) {
   useEffect(() => {
     if (!map || !popup) return;
     const previousFocus = document.activeElement;
-    const instance = new maplibregl.Popup({ closeButton: false, closeOnClick: false, maxWidth: "280px", offset: 28, className: "team-mark-popup" })
-      .setLngLat([popup.pos.lng, popup.pos.lat]).setDOMContent(popupHost).addTo(map);
+    const instance = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      maxWidth: "280px",
+      offset: 28,
+      className: "map-mark-popup",
+    })
+      .setLngLat([popup.pos.lng, popup.pos.lat])
+      .setDOMContent(popupHost)
+      .addTo(map);
     popupRef.current = instance;
     popupHost.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
     return () => {

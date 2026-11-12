@@ -6,7 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { initials } from "./ui";
-import { type MapTeamMark, type TeamMarkPopup, TeamMarkers } from "./TeamMarkers";
+import { type MapMarkView, type MapMarkPopup, MapMarkers } from "./MapMarkers";
 
 export interface MapPlayer {
   id: string;
@@ -41,9 +41,9 @@ interface Props {
   /** The game is paused: the map goes grey. */
   paused?: boolean;
   onTap?: (p: LatLng) => void;
-  teamMarks?: MapTeamMark[];
+  mapMarks?: MapMarkView[];
   markNow?: number;
-  markPopup?: TeamMarkPopup;
+  markPopup?: MapMarkPopup;
   onMarkTap?: (id: string) => void;
   onMarkMove?: (id: string, p: LatLng) => void;
 }
@@ -133,7 +133,24 @@ function markerEl(p: MapPlayer): HTMLElement {
   return el;
 }
 
-export const GameMap = forwardRef<MapHandle, Props>(function GameMap({ zone, nextZone, pings = [], players = [], focus, padding, refitKey, attribution = "bottom-right", shrinking = false, paused = false, onTap, teamMarks = [], markNow = 0, markPopup, onMarkTap, onMarkMove }, ref) {
+export const GameMap = forwardRef<MapHandle, Props>(function GameMap({
+  zone,
+  nextZone,
+  pings = [],
+  players = [],
+  focus,
+  padding,
+  refitKey,
+  attribution = "bottom-right",
+  shrinking = false,
+  paused = false,
+  onTap,
+  mapMarks = [],
+  markNow = 0,
+  markPopup,
+  onMarkTap,
+  onMarkMove,
+}, ref) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef(new Map<string, { marker: maplibregl.Marker; kind: string }>());
@@ -208,7 +225,7 @@ export const GameMap = forwardRef<MapHandle, Props>(function GameMap({ zone, nex
     mapRef.current = map;
     setMapReady(true);
     map.on("click", (e: MapMouseEvent) => {
-      if (e.originalEvent.target instanceof Element && e.originalEvent.target.closest(".team-mark, .maplibregl-popup")) return;
+      if (e.originalEvent.target instanceof Element && e.originalEvent.target.closest(".map-mark, .maplibregl-popup")) return;
       onTapRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.wrap().lng });
     });
     map.on("load", () => {
@@ -323,6 +340,13 @@ export const GameMap = forwardRef<MapHandle, Props>(function GameMap({ zone, nex
 
   return <>
     <div ref={el} className={`map${paused ? " paused" : ""}`} />
-    <TeamMarkers map={mapReady ? mapRef.current : null} marks={teamMarks} now={markNow} popup={markPopup} onTap={onMarkTap} onMove={onMarkMove} />
+    <MapMarkers
+      map={mapReady ? mapRef.current : null}
+      marks={mapMarks}
+      now={markNow}
+      popup={markPopup}
+      onTap={onMarkTap}
+      onMove={onMarkMove}
+    />
   </>;
 });
