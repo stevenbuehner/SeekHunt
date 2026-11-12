@@ -29,8 +29,8 @@ export interface GameConfig {
   lastSurvivorWins: boolean;
   /** Players declare which floor they are on, and the radar shows it. For games inside buildings. */
   buildingMode: boolean;
-  /** Temporary map notes shared only with the player's team. */
-  teamMarkings: boolean;
+  /** Temporary map notes available to each player; 0 disables them. */
+  mapMarkLimit: number;
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -48,7 +48,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   caughtBecomeSeekers: false,
   lastSurvivorWins: true,
   buildingMode: false,
-  teamMarkings: false,
+  mapMarkLimit: 0,
 };
 
 const clamp = (v: unknown, min: number, max: number, fallback: number) =>
@@ -62,9 +62,18 @@ export function effectiveFinalRadius(config: GameConfig): number {
   return Math.max(5, Math.min(config.finalRadius, config.zone.radius / 2));
 }
 
+/** Accept former persisted field names while emitting only the current config format. */
+function readMapMarkLimit(config: Partial<GameConfig> & { teamMarkLimit?: unknown; teamMarkings?: unknown }): number | undefined {
+  const limit = config.mapMarkLimit ?? config.teamMarkLimit;
+  if (typeof limit === "number" && Number.isFinite(limit)) return Math.round(clamp(limit, 0, 3, 0));
+  if (typeof config.teamMarkings === "boolean") return config.teamMarkings ? 3 : 0;
+  return undefined;
+}
+
 /** Merges an untrusted partial config onto `base`, clamping every value to a sane range. */
 export function sanitizeConfig(input: Partial<GameConfig> | undefined, base: GameConfig): GameConfig {
   const i = input ?? {};
+  const mapMarkLimit = readMapMarkLimit(i) ?? readMapMarkLimit(base) ?? 0;
   const zoneIn = i.zone;
   const zone: Circle =
     zoneIn && zoneIn.center
@@ -95,6 +104,6 @@ export function sanitizeConfig(input: Partial<GameConfig> | undefined, base: Gam
     lastSurvivorWins: typeof i.lastSurvivorWins === "boolean" ? i.lastSurvivorWins : base.lastSurvivorWins,
     // `?? false`: rooms saved before this option existed have no value for it.
     buildingMode: typeof i.buildingMode === "boolean" ? i.buildingMode : (base.buildingMode ?? false),
-    teamMarkings: typeof i.teamMarkings === "boolean" ? i.teamMarkings : (base.teamMarkings ?? false),
+    mapMarkLimit,
   };
 }
