@@ -54,10 +54,10 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
   const canMark = markings && !spectating && !paused;
   const [markSelection, setMarkSelection] = useState<{ id: string } | { pos: LatLng } | null>(null);
   const [movingMark, setMovingMark] = useState<string | null>(null);
-  const [editingMarks, setEditingMarks] = useState(false);
-  const markEditMode = editingMarks && canMark;
-  // Visibility is shared with the team; edit permission belongs to this player only.
-  const mapMarks: MapMarkView[] = markings
+  const [marksVisible, setMarksVisible] = useState(false);
+  const markEditMode = marksVisible && canMark;
+  // Keep the full available list for the badge and limits even while the map hides it.
+  const availableMarks: MapMarkView[] = markings
     ? (view.mapMarks ?? [])
       .filter((mark) => mark.role === me.role && mark.expiresAt > now)
       .map((mark) => {
@@ -71,13 +71,34 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
         };
       })
     : [];
-  const ownMarkCount = mapMarks.filter((m) => m.playerId === me.id).length;
+  const mapMarks = marksVisible ? availableMarks : [];
+  const [unseenTeamMarks, setUnseenTeamMarks] = useState<Set<string>>(() => new Set());
+  const previousMarks = useRef({ role: me.role, playerId: me.id, ids: new Set(availableMarks.map((mark) => mark.id)) });
+  const hasNewTeamMarks = !marksVisible && availableMarks.some((mark) => unseenTeamMarks.has(mark.id));
+
+  useEffect(() => {
+    const previous = previousMarks.current;
+    previousMarks.current = { role: me.role, playerId: me.id, ids: new Set(availableMarks.map((mark) => mark.id)) };
+    setUnseenTeamMarks((current) => {
+      // Opening the flags acknowledges them. A team change starts a fresh notification history.
+      if (marksVisible || previous.role !== me.role || previous.playerId !== me.id) {
+        return current.size ? new Set() : current;
+      }
+      const unseen = new Set(availableMarks
+        .filter((mark) => mark.playerId !== me.id && (current.has(mark.id) || !previous.ids.has(mark.id)))
+        .map((mark) => mark.id));
+      // Removed or expired marks stop requesting attention, even if older flags remain.
+      return unseen.size === current.size && [...unseen].every((id) => current.has(id)) ? current : unseen;
+    });
+  }, [availableMarks, marksVisible, me.role, me.id]);
+
+  const ownMarkCount = availableMarks.filter((m) => m.playerId === me.id).length;
   const selectedMark = markSelection && "id" in markSelection ? mapMarks.find((m) => m.id === markSelection.id) : undefined;
   const newMarkPos = markSelection && "pos" in markSelection ? markSelection.pos : undefined;
   useEffect(() => {
     setMarkSelection(null);
     setMovingMark(null);
-    setEditingMarks(false);
+    setMarksVisible(false);
   }, [me.role, me.status, paused, ended, config.mapMarkLimit]);
   useEffect(() => {
     if (markSelection && "id" in markSelection && !selectedMark) {
@@ -88,16 +109,16 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
     }
   }, [markSelection, selectedMark, movingMark, mapMarks]);
   useEffect(() => {
-    if (!markSelection && !movingMark && !editingMarks) return;
+    if (!markSelection && !movingMark && !marksVisible) return;
     const close = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setMarkSelection(null);
       setMovingMark(null);
-      setEditingMarks(false);
+      setMarksVisible(false);
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [markSelection, movingMark, editingMarks]);
+  }, [markSelection, movingMark, marksVisible]);
   const moveMark = (id: string, pos: LatLng) => {
     const isOwnedMark = mapMarks.some((mark) => mark.id === id && mark.playerId === me.id);
     if (markEditMode && isOwnedMark) send({ t: "markUpdate", id, ...pos });
@@ -132,7 +153,7 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
         onMove={() => {
           if (selectedMark && markEditMode) {
             setMovingMark(selectedMark.id);
-            setEditingMarks(true);
+            setMarksVisible(true);
           }
           setMarkSelection(null);
         }}
@@ -281,16 +302,19 @@ export function Play({ view, send, gps, clockOffset, ask }: Props) {
         <button className="icon-btn" aria-label={t("fab.zone")} onClick={() => mapRef.current?.fit(current)}>
           <Focus size={20} />
         </button>
-        {markings && !spectating && (
+        {markings && (
           <button
-            className="icon-btn mark-toggle"
+            className={`icon-btn mark-toggle${hasNewTeamMarks ? " has-new-marks" : ""}`}
             aria-label={t("fab.mark")}
+            aria-describedby="map-mark-count"
             title={t("fab.mark")}
-            aria-pressed={markEditMode}
-            disabled={!canMark}
-            onClick={() => { setEditingMarks(!markEditMode); setMarkSelection(null); setMovingMark(null); }}
+            aria-pressed={marksVisible}
+            disabled={paused}
+            onClick={() => { setMarksVisible(!marksVisible); setMarkSelection(null); setMovingMark(null); }}
           >
             <Flag size={20} />
+            {availableMarks.length > 0 && <span className="mark-count num" aria-hidden>{availableMarks.length}</span>}
+            <span id="map-mark-count" className="sr-only">{t("fab.markCount", { n: availableMarks.length })}</span>
           </button>
         )}
         {!ended && !mySos && (

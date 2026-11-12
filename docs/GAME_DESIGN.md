@@ -94,11 +94,14 @@ time; host pauses freeze the countdown. Each saved edit or move resets the
 countdown to two minutes. Tapping a note shows its author; only its owner can change or remove
 it. Hold for 450 ms and drag with mouse or touch to move it, or use "Move mark"
 and tap the destination. The flag button starts off and uses an orange outline
-while active. Switch it off to navigate the map without opening the note picker;
-existing notes stay visible and can be inspected, while editing, removing and
-dragging them requires the mode to be on. The switch is local to each player
-and never deletes or hides notes. Escape also switches it off. In simulation mode, taps move the player while the
-flag button is off. Pausing or leaving active play switches it off as well.
+while active. It controls both visibility and editing: switching it off hides all
+own and team notes locally without deleting them. A badge counts all available
+team notes, including your own, and disappears when none remain. New notes from
+teammates make the hidden-mode button gently flash until you show them or those
+new notes are removed or expire. Editing an existing note does not trigger the
+alert. Spectators can show their team's notes but cannot edit them. Escape also
+switches the button off. In simulation mode, taps move the player while the flag
+button is off. Pausing or leaving active play switches it off as well.
 
 The server sends notes only to their own team, including when a player is
 spectating. An infected player's old notes are removed when they change

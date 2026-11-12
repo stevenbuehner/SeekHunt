@@ -547,6 +547,17 @@ body:has(.lobby) .toasts { top: calc(66px + var(--safe-t)); }
 .scanner-type h2 { font-size: 2.2rem; }
 .scanner:has(.scanner-type) .scanner-top .label { color: var(--ink-3); }
 .icon-btn.sos { color: var(--danger-text); }
+.icon-btn.mark-toggle { position: relative; }
+.mark-count {
+  position: absolute; top: -6px; right: -6px; display: grid; place-items: center;
+  min-width: 21px; height: 21px; padding: 0 4px; border: 2px solid var(--paper); border-radius: 999px;
+  background: var(--blaze); color: var(--on-blaze); font-size: 11px; line-height: 1; pointer-events: none;
+}
+.icon-btn.mark-toggle.has-new-marks { animation: mark-alert 2.4s ease-in-out infinite; }
+@keyframes mark-alert {
+  0%, 100% { background: var(--paper); box-shadow: var(--shadow); }
+  40% { background: var(--blaze-soft); box-shadow: inset 0 0 0 2px var(--blaze), var(--shadow); }
+}
 .icon-btn.mark-toggle[aria-pressed="true"] {
   color: var(--blaze-text); background: var(--blaze-soft);
   box-shadow: inset 0 0 0 2px var(--blaze), var(--shadow);
