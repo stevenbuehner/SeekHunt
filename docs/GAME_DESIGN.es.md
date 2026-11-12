@@ -73,18 +73,21 @@ La interfaz está en español, inglés y alemán, y se elige automáticamente se
 | **Equilibrio de equipos** | En grupos de 6 o más, la sala sugiere 1 cazador por cada 4–6 escondidos. |
 | **Saltos imposibles** | Se descartan las posiciones que implican más de 60 m/s. Es un antitrampas ligero contra GPS falso. |
 
-## Marcas de equipo (`teamMarkings`)
+## Marcas del mapa (`mapMarkLimit`)
 
-Regla opcional, desactivada por defecto. Activa el botón de bandera encima de
+Regla opcional, desactivada por defecto. Elige entre 0 y 3 marcas por jugador;
+0 las desactiva. Activa el botón de bandera encima de
 SOS y toca el mapa para señalar un rival
-avistado (ojo verde) o un lugar revisado (X naranja). Cada jugador activo puede tener tres marcas.
+avistado (ojo verde) o un lugar revisado (X naranja). Cada jugador activo puede tener hasta el límite elegido.
 Desaparecen tras dos minutos de juego; las pausas detienen la cuenta atrás y
 editar o mover una marca la reinicia a dos minutos. Al tocarla se muestra su autor, el
 único que puede modificarla o borrarla. Para moverla, mantén pulsado durante
 450 ms y arrastra con ratón o dedo, o elige "Mover marca" y toca el destino.
 El botón empieza desactivado y muestra un borde naranja cuando está activo.
-Desactívalo para navegar sin abrir el selector de marcas; Escape también lo
-desactiva. En simulación, los toques mueven al jugador mientras esté desactivado.
+Desactívalo para navegar sin abrir el selector. Las marcas siguen visibles y
+se puede consultar su autor; editarlas, borrarlas o arrastrarlas requiere activar
+el modo. El botón solo controla la edición de cada jugador, nunca borra ni oculta
+marcas. Escape también lo desactiva. En simulación, los toques mueven al jugador mientras esté desactivado.
 Las pausas o dejar de jugar activamente también lo desactivan.
 
 El servidor solo envía marcas al equipo correspondiente, también en modo

@@ -58,7 +58,7 @@ comparte el enlace. No hay que instalar nada ni crear una cuenta.
 - **Control del anfitrión.** Ritmos predefinidos, reglas, roles y una pausa que
   congela todos los tiempos.
 - **Modos.** Último superviviente, infección y modo edificio.
-- **Marcas de equipo opcionales.** Toca el mapa para señalar un rival avistado
+- **Marcas del mapa opcionales.** Toca el mapa para señalar un rival avistado
   o un lugar revisado. Cada jugador tiene tres marcas, visibles solo para su
   equipo durante dos minutos. La cuenta atrás se detiene durante las pausas.
 - **Ayuda durante la partida.** Cuenta atrás antes de la salida, avisos de
